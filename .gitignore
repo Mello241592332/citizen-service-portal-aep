@@ -1,0 +1,23 @@
+# IntelliJ IDEA
+.idea/
+*.iml
+out/
+
+# Compiled files
+*.class
+
+# Logs
+*.log
+
+# Package files
+*.jar
+*.war
+*.ear
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.swp
