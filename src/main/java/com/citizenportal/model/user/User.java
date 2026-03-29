@@ -1,4 +1,4 @@
-package main.java.com.citizenportal.model;
+package com.citizenportal.model.user;
 
 public class User {
     private String id;
