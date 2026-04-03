@@ -1,19 +1,24 @@
 package com.citizenrequestsystem.controller;
 
 import com.citizenrequestsystem.model.request.Request;
+import com.citizenrequestsystem.model.request.Status;
+import com.citizenrequestsystem.model.request.Priority;
+import com.citizenrequestsystem.model.user.User;
 import com.citizenrequestsystem.service.RequestService;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Scanner;
 
 public class RequestController {
-    private RequestService requestService;
+
+    private final RequestService requestService;
 
     public RequestController(RequestService service) {
         this.requestService = service;
     }
 
-    public void menu() {
+    public void menu(User loggedUser) {
         Scanner sc = new Scanner(System.in);
         while (true) {
             System.out.println("\n1 - Create Request");
@@ -24,7 +29,7 @@ public class RequestController {
             sc.nextLine(); // consume newline
 
             switch (option) {
-                case 1 -> createRequest(sc);
+                case 1 -> createRequest(sc, loggedUser);
                 case 2 -> listRequests();
                 case 0 -> { System.out.println("Exiting..."); return; }
                 default -> System.out.println("Invalid option!");
@@ -32,13 +37,22 @@ public class RequestController {
         }
     }
 
-    private void createRequest(Scanner sc) {
+    private void createRequest(Scanner sc, User loggedUser) {
         System.out.print("Enter protocol: ");
         String protocol = sc.nextLine();
         System.out.print("Enter description: ");
-        String desc = sc.nextLine();
+        String description = sc.nextLine();
 
-        Request req = new Request(protocol, desc, null);
+        // Usando construtor vazio + setters
+        Request req = new Request();
+        req.setProtocol(protocol);
+        req.setDescription(description);
+        req.setUser(loggedUser);           // vincula o usuário logado
+        req.setStatus(Status.ABERTO);      // status inicial
+        req.setPriority(Priority.MEDIA);   // prioridade padrão
+        req.setCreatedAt(LocalDateTime.now());
+        req.setUpdatedAt(LocalDateTime.now());
+
         requestService.createRequest(req);
         System.out.println("Request created!");
     }
@@ -47,10 +61,14 @@ public class RequestController {
         List<Request> requests = requestService.getAllRequests();
         if (requests.isEmpty()) {
             System.out.println("No requests found!");
-        } else {
-            for (Request r : requests) {
-                System.out.println("Protocol: " + r.getProtocol() + ", Description: " + r.getDescription());
-            }
+            return;
+        }
+
+        for (Request r : requests) {
+            System.out.println("Protocol: " + r.getProtocol() +
+                    ", Description: " + r.getDescription() +
+                    ", Status: " + r.getStatus() +
+                    ", Priority: " + r.getPriority());
         }
     }
 }

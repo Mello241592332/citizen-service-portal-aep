@@ -5,7 +5,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-// Solicitação de serviço público
 public class Request {
     private String protocol;
     private Category category;
@@ -24,23 +23,36 @@ public class Request {
     private List<Movement> movements;
     private Sector sector;
 
+    // Construtor vazio
     public Request() {
         this.attachments = new ArrayList<>();
         this.movements = new ArrayList<>();
     }
 
-    public Request(String protocol, String description, User user) {
+    // Construtor completo com todos os campos
+    public Request(String protocol, Category category, String description, String location, String neighborhood,
+                   Status status, Priority priority, LocalDateTime createdAt, LocalDateTime updatedAt,
+                   LocalDateTime slaDeadline, String delayJustification, boolean isAnonymous, User user,
+                   List<Attachment> attachments, List<Movement> movements, Sector sector) {
         this.protocol = protocol;
+        this.category = category;
         this.description = description;
-        this.user = user;
-        this.attachments = new ArrayList<>();
-        this.movements = new ArrayList<>();
-        this.status = Status.EM_ANDAMENTO;      // por exemplo
-        this.priority = Priority.MEDIA;   // valor default
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+        this.location = location;
+        this.neighborhood = neighborhood;
+        this.status = status;
+        this.priority = priority;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.slaDeadline = slaDeadline;
+        this.delayJustification = delayJustification;
+        this.isAnonymous = isAnonymous;
+        this.user = isAnonymous ? null : user;
+        this.sector = sector;
+        this.attachments = attachments != null ? attachments : new ArrayList<>();
+        this.movements = movements != null ? movements : new ArrayList<>();
     }
 
+    // Getters e Setters
     public String getProtocol() {
         return protocol;
     }
@@ -67,14 +79,6 @@ public class Request {
 
     public String getLocation() {
         return location;
-    }
-
-    public Sector getSector() {
-        return sector;
-    }
-
-    public void setSector(Sector sector) {
-        this.sector = sector;
     }
 
     public void setLocation(String location) {
@@ -143,7 +147,7 @@ public class Request {
     }
 
     public void setAnonymous(boolean anonymous) {
-        isAnonymous = anonymous;
+        this.isAnonymous = anonymous;
         if (anonymous) {
             this.user = null;
         }
@@ -154,7 +158,9 @@ public class Request {
     }
 
     public void setUser(User user) {
-        this.user = user;
+        if (!this.isAnonymous) {
+            this.user = user;
+        }
     }
 
     public List<Attachment> getAttachments() {
@@ -162,7 +168,7 @@ public class Request {
     }
 
     public void setAttachments(List<Attachment> attachments) {
-        this.attachments = attachments;
+        this.attachments = attachments != null ? attachments : new ArrayList<>();
     }
 
     public List<Movement> getMovements() {
@@ -170,6 +176,14 @@ public class Request {
     }
 
     public void setMovements(List<Movement> movements) {
-        this.movements = movements;
+        this.movements = movements != null ? movements : new ArrayList<>();
+    }
+
+    public Sector getSector() {
+        return sector;
+    }
+
+    public void setSector(Sector sector) {
+        this.sector = sector;
     }
 }
