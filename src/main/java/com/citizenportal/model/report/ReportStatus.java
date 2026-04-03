@@ -1,7 +1,9 @@
 package com.citizenportal.model.report;
 
 public enum ReportStatus {
-    OPEN,
-    CLOSED,
-    FINISH
+    RECEBIDO,
+    EM_ANALISE,
+    ENCAMINHADO,
+    ARQUIVADO,
+    FINALIZADO
 }

@@ -1,7 +1,7 @@
 package com.citizenportal.model.user;
 
 public enum Role{
-    cidadao,
-    servidor_publico,
-    gestor
+    CIDADAO,
+    SERVIDOR_PUBLICO,
+    GESTOR
 }

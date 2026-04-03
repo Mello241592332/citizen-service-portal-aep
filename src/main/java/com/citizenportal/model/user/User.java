@@ -2,13 +2,13 @@ package com.citizenportal.model.user;
 
 public class User {
     private String id;
-    private String name;
+    private String nome;
     private String email;
     private Role role;
 
     public User (String id, String name, String email, Role role){
         this.id = id;
-        this.name = name;
+        this.nome = name;
         this.email = email;
         this.role = role;
     }
@@ -22,11 +22,11 @@ public class User {
     }
 
     public String getName() {
-        return name;
+        return nome;
     }
 
     public void setName(String name) {
-        this.name = name;
+        this.nome = name;
     }
 
     public String getEmail() {

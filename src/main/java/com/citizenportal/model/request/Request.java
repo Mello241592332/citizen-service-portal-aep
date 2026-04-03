@@ -22,6 +22,7 @@ public class Request {
     private User user;
     private List<Attachment> attachments;
     private List<Movement> movements;
+    private Sector sector;
 
     public Request() {
         this.attachments = new ArrayList<>();
@@ -31,7 +32,7 @@ public class Request {
     public Request(String protocol, Category category, String description, String location, String neighborhood,
                    Status status, Priority priority, LocalDateTime createdAt, LocalDateTime updatedAt,
                    LocalDateTime slaDeadline, String delayJustification, boolean isAnonymous, User user,
-                   List<Attachment> attachments, List<Movement> movements) {
+                   List<Attachment> attachments, List<Movement> movements, Sector sector) {
         this.protocol = protocol;
         this.category = category;
         this.description = description;
@@ -45,6 +46,7 @@ public class Request {
         this.delayJustification = delayJustification;
         this.isAnonymous = isAnonymous;
         this.user = user;
+        this.sector = sector;
         this.attachments = attachments != null ? attachments : new ArrayList<>();
         this.movements = movements != null ? movements : new ArrayList<>();
     }
@@ -77,6 +79,14 @@ public class Request {
         return location;
     }
 
+    public Sector getSector() {
+        return sector;
+    }
+
+    public void setSector(Sector sector) {
+        this.sector = sector;
+    }
+
     public void setLocation(String location) {
         this.location = location;
     }
@@ -95,6 +105,7 @@ public class Request {
 
     public void setStatus(Status status) {
         this.status = status;
+        this.updatedAt = LocalDateTime.now();
     }
 
     public Priority getPriority() {
@@ -143,6 +154,9 @@ public class Request {
 
     public void setAnonymous(boolean anonymous) {
         isAnonymous = anonymous;
+        if (anonymous) {
+            this.user = null;
+        }
     }
 
     public User getUser() {

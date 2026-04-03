@@ -1,8 +1,9 @@
 package com.citizenportal.model.request;
 
 public enum Category {
-    iluminacao,
-    limpeza,
-    saude,
-    seguranca
+    PROBLEMAS_ENERGIA,  //problemas eletricos no geral
+    LIMPEZA,
+    SAUDE,
+    SEGURANCA,
+    EDUCACAO
 }
