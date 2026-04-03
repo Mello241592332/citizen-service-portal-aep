@@ -38,7 +38,7 @@ public class CitizenRequestSystemApplication {
 
     public static void main(String[] args) {
         Locale.setDefault(new Locale("pt", "BR"));
-        seedAuthoritiesExample();
+        seedSystemUsers();
         showWelcomeScreen();
         authenticationFlow();
     }
@@ -126,14 +126,28 @@ public class CitizenRequestSystemApplication {
 
     private static void mainMenu() {
         while (loggedAccount != null) {
-            printMainMenu();
-            int option = readOption(1, 4);
+            if (loggedAccount.user().getRole() == Role.GESTOR) {
+                printManagerMenu();
+                int option = readOption(1, 6);
 
-            switch (option) {
-                case 1 -> createNewOccurrence();
-                case 2 -> listMyOccurrences();
-                case 3 -> searchByProtocol();
-                case 4 -> logout();
+                switch (option) {
+                    case 1 -> listAllOccurrencesForManager();
+                    case 2 -> searchByProtocolForManager();
+                    case 3 -> updateRequestStatus();
+                    case 4 -> updateReportStatus();
+                    case 5 -> registerManagerComment();
+                    case 6 -> logout();
+                }
+            } else {
+                printMainMenu();
+                int option = readOption(1, 4);
+
+                switch (option) {
+                    case 1 -> createNewOccurrence();
+                    case 2 -> listMyOccurrences();
+                    case 3 -> searchByProtocol();
+                    case 4 -> logout();
+                }
             }
         }
     }
@@ -149,6 +163,22 @@ public class CitizenRequestSystemApplication {
         System.out.println("2 - Minhas solicitações e denúncias");
         System.out.println("3 - Buscar por número de protocolo");
         System.out.println("4 - Sair da conta");
+        System.out.print("Escolha uma opção: ");
+    }
+
+    private static void printManagerMenu() {
+        System.out.println();
+        printLine();
+        System.out.println("MENU DO GESTOR");
+        printLine();
+        System.out.println("Usuário logado: " + loggedAccount.user().getName() + " (GESTOR)");
+        System.out.println();
+        System.out.println("1 - Listar todas as solicitações e denúncias");
+        System.out.println("2 - Buscar protocolo");
+        System.out.println("3 - Atualizar status de solicitação");
+        System.out.println("4 - Atualizar status de denúncia");
+        System.out.println("5 - Registrar comentário");
+        System.out.println("6 - Sair da conta");
         System.out.print("Escolha uma opção: ");
     }
 
@@ -341,6 +371,40 @@ public class CitizenRequestSystemApplication {
         }
     }
 
+    private static void listAllOccurrencesForManager() {
+        System.out.println();
+        printLine();
+        System.out.println("LISTAGEM GERAL - VISÃO DO GESTOR");
+        printLine();
+
+        List<ProtocolItem> items = new ArrayList<>();
+
+        for (RequestRecord record : requestRecords) {
+            items.add(ProtocolItem.fromRequest(record.request()));
+        }
+
+        for (ReportRecord record : reportRecords) {
+            items.add(ProtocolItem.fromReport(record.report()));
+        }
+
+        if (items.isEmpty()) {
+            System.out.println("Ainda não há solicitações ou denúncias cadastradas.");
+            return;
+        }
+
+        items.sort(Comparator.comparing(ProtocolItem::createdAt).reversed());
+
+        for (ProtocolItem item : items) {
+            System.out.println("Protocolo: " + item.protocol());
+            System.out.println("Tipo: " + item.type());
+            System.out.println("Categoria: " + item.category());
+            System.out.println("Status: " + item.status());
+            System.out.println("Data: " + DATE_TIME_FORMATTER.format(item.createdAt()));
+            System.out.println("Resumo: " + item.description());
+            printLine();
+        }
+    }
+
     private static void searchByProtocol() {
         System.out.println();
         printLine();
@@ -351,17 +415,170 @@ public class CitizenRequestSystemApplication {
         Request foundRequest = findRequestByProtocol(protocol, loggedAccount.user().getId());
         if (foundRequest != null) {
             showRequestDetails(foundRequest);
+            showRequestMovements(foundRequest);
             return;
         }
 
         Report foundReport = findReportByProtocol(protocol, loggedAccount.user().getId());
         if (foundReport != null) {
             showReportDetails(foundReport);
+            showReportMovements(foundReport);
             return;
         }
 
         System.out.println();
         System.out.println("Nenhum protocolo foi encontrado para a sua conta.");
+    }
+
+    private static void searchByProtocolForManager() {
+        System.out.println();
+        printLine();
+        System.out.println("BUSCA DE PROTOCOLO - VISÃO DO GESTOR");
+        printLine();
+
+        String protocol = readRequiredText("Digite o número do protocolo: ").toUpperCase();
+
+        Request foundRequest = findAnyRequestByProtocol(protocol);
+        if (foundRequest != null) {
+            showRequestDetails(foundRequest);
+            showRequestMovements(foundRequest);
+            return;
+        }
+
+        Report foundReport = findAnyReportByProtocol(protocol);
+        if (foundReport != null) {
+            showReportDetails(foundReport);
+            showReportMovements(foundReport);
+            return;
+        }
+
+        System.out.println();
+        System.out.println("Nenhum protocolo foi encontrado.");
+    }
+
+    private static void updateRequestStatus() {
+        System.out.println();
+        printLine();
+        System.out.println("ATUALIZAÇÃO DE STATUS - SOLICITAÇÃO");
+        printLine();
+
+        String protocol = readRequiredText("Digite o protocolo da solicitação: ").toUpperCase();
+        Request request = findAnyRequestByProtocol(protocol);
+
+        if (request == null) {
+            System.out.println();
+            System.out.println("Solicitação não encontrada.");
+            return;
+        }
+
+        System.out.println("Status atual: " + formatEnum(request.getStatus()));
+        Status newStatus = chooseRequestStatus();
+
+        if (newStatus == request.getStatus()) {
+            System.out.println();
+            System.out.println("A solicitação já está nesse status.");
+            return;
+        }
+
+        request.setStatus(newStatus);
+
+        String comment = readRequiredText("Digite um comentário da atualização: ");
+        request.getMovements().add(
+                new com.citizenrequestsystem.model.request.Movement(
+                        "Status atualizado para " + formatEnum(newStatus) + ". Comentário: " + comment,
+                        LocalDateTime.now(),
+                        loggedAccount.user()
+                )
+        );
+
+        System.out.println();
+        System.out.println("Status da solicitação atualizado com sucesso.");
+        System.out.println("Novo status: " + formatEnum(request.getStatus()));
+    }
+
+    private static void updateReportStatus() {
+        System.out.println();
+        printLine();
+        System.out.println("ATUALIZAÇÃO DE STATUS - DENÚNCIA");
+        printLine();
+
+        String protocol = readRequiredText("Digite o protocolo da denúncia: ").toUpperCase();
+        Report report = findAnyReportByProtocol(protocol);
+
+        if (report == null) {
+            System.out.println();
+            System.out.println("Denúncia não encontrada.");
+            return;
+        }
+
+        System.out.println("Status atual: " + formatEnum(report.getStatus()));
+        ReportStatus newStatus = chooseReportStatus();
+
+        if (newStatus == report.getStatus()) {
+            System.out.println();
+            System.out.println("A denúncia já está nesse status.");
+            return;
+        }
+
+        report.setStatus(newStatus);
+
+        String comment = readRequiredText("Digite um comentário da atualização: ");
+        report.getMovements().add(
+                new Movement(
+                        UUID.randomUUID().toString(),
+                        "Status atualizado para " + formatEnum(newStatus) + ". Comentário: " + comment,
+                        LocalDateTime.now()
+                )
+        );
+
+        System.out.println();
+        System.out.println("Status da denúncia atualizado com sucesso.");
+        System.out.println("Novo status: " + formatEnum(report.getStatus()));
+    }
+
+    private static void registerManagerComment() {
+        System.out.println();
+        printLine();
+        System.out.println("REGISTRO DE COMENTÁRIO");
+        printLine();
+
+        String protocol = readRequiredText("Digite o protocolo: ").toUpperCase();
+
+        Request request = findAnyRequestByProtocol(protocol);
+        if (request != null) {
+            String comment = readRequiredText("Digite o comentário: ");
+            request.getMovements().add(
+                    new com.citizenrequestsystem.model.request.Movement(
+                            "Comentário do gestor: " + comment,
+                            LocalDateTime.now(),
+                            loggedAccount.user()
+                    )
+            );
+            request.setUpdatedAt(LocalDateTime.now());
+
+            System.out.println();
+            System.out.println("Comentário registrado com sucesso na solicitação.");
+            return;
+        }
+
+        Report report = findAnyReportByProtocol(protocol);
+        if (report != null) {
+            String comment = readRequiredText("Digite o comentário: ");
+            report.getMovements().add(
+                    new Movement(
+                            UUID.randomUUID().toString(),
+                            "Comentário do gestor: " + comment,
+                            LocalDateTime.now()
+                    )
+            );
+
+            System.out.println();
+            System.out.println("Comentário registrado com sucesso na denúncia.");
+            return;
+        }
+
+        System.out.println();
+        System.out.println("Nenhum protocolo foi encontrado.");
     }
 
     private static void showRequestDetails(Request request) {
@@ -401,6 +618,38 @@ public class CitizenRequestSystemApplication {
         System.out.println("Anexos informados: " + report.getAttachments().size());
         System.out.println("Sigilo: Manifestação anônima");
         System.out.println("Situação do atendimento: A denúncia foi registrada e encaminhada para análise.");
+    }
+
+    private static void showRequestMovements(Request request) {
+        System.out.println();
+        System.out.println("Histórico da solicitação:");
+
+        if (request.getMovements() == null || request.getMovements().isEmpty()) {
+            System.out.println("Nenhuma movimentação registrada.");
+            return;
+        }
+
+        for (com.citizenrequestsystem.model.request.Movement movement : request.getMovements()) {
+            System.out.println("- " + formatDateTime(movement.getCreatedAt())
+                    + " | " + movement.getDescription()
+                    + " | Responsável: "
+                    + (movement.getUser() != null ? movement.getUser().getName() : "Não informado"));
+        }
+    }
+
+    private static void showReportMovements(Report report) {
+        System.out.println();
+        System.out.println("Histórico da denúncia:");
+
+        if (report.getMovements() == null || report.getMovements().isEmpty()) {
+            System.out.println("Nenhuma movimentação registrada.");
+            return;
+        }
+
+        for (Movement movement : report.getMovements()) {
+            System.out.println("- " + formatDateTime(movement.getDate())
+                    + " | " + movement.getDescription());
+        }
     }
 
     private static void logout() {
@@ -457,6 +706,34 @@ public class CitizenRequestSystemApplication {
 
         int option = readOption(1, authorities.size());
         return authorities.get(option - 1);
+    }
+
+    private static Status chooseRequestStatus() {
+        System.out.println();
+        System.out.println("Escolha o novo status da solicitação:");
+        Status[] values = Status.values();
+
+        for (int i = 0; i < values.length; i++) {
+            System.out.println((i + 1) + " - " + formatEnum(values[i]));
+        }
+
+        System.out.print("Opção: ");
+        int option = readOption(1, values.length);
+        return values[option - 1];
+    }
+
+    private static ReportStatus chooseReportStatus() {
+        System.out.println();
+        System.out.println("Escolha o novo status da denúncia:");
+        ReportStatus[] values = ReportStatus.values();
+
+        for (int i = 0; i < values.length; i++) {
+            System.out.println((i + 1) + " - " + formatEnum(values[i]));
+        }
+
+        System.out.print("Opção: ");
+        int option = readOption(1, values.length);
+        return values[option - 1];
     }
 
     private static List<com.citizenrequestsystem.model.request.Attachment> askRequestAttachments() {
@@ -632,12 +909,36 @@ public class CitizenRequestSystemApplication {
         return null;
     }
 
-    private static void seedAuthoritiesExample() {
+    private static Request findAnyRequestByProtocol(String protocol) {
+        for (RequestRecord record : requestRecords) {
+            if (record.request().getProtocol().equalsIgnoreCase(protocol)) {
+                return record.request();
+            }
+        }
+        return null;
+    }
+
+    private static Report findAnyReportByProtocol(String protocol) {
+        for (ReportRecord record : reportRecords) {
+            if (record.report().getProtocol().equalsIgnoreCase(protocol)) {
+                return record.report();
+            }
+        }
+        return null;
+    }
+
+    private static void seedSystemUsers() {
         AuthAccount demo = new AuthAccount(
                 new User(UUID.randomUUID().toString(), "Usuário de Exemplo", "demo@portal.com", Role.CIDADAO),
                 "123"
         );
         accountsByEmail.put(demo.user().getEmail().toLowerCase(), demo);
+
+        AuthAccount manager = new AuthAccount(
+                new User(UUID.randomUUID().toString(), "Gestor do Portal", "gestor@portal.com", Role.GESTOR),
+                "123"
+        );
+        accountsByEmail.put(manager.user().getEmail().toLowerCase(), manager);
     }
 
     private static List<Authority> buildAuthorities() {
